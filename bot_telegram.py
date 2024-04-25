@@ -4,11 +4,9 @@ import conexao_mongo
 import funcoes.buscas
 import funcoes.tratamentos
 from unidecode import unidecode
-import k
-CHAVE_API = k.CHAVE_API
-CHAVE_API_MAPS = k.CHAVE_API_MAPS
+import keys
 
-
+CHAVE_API = keys.CHAVE_API
 bot = telebot.TeleBot(CHAVE_API) #criação/conexão com a  chave api
 
 # Função para lidar com o comando /start
@@ -53,7 +51,7 @@ def ask_image(message):
     user_data['state_localizacao'] = 'gps'
     latitude, longitude = message.location.latitude, message.location.longitude
     user_data['localizacao'] = [message.location.latitude, message.location.longitude]
-    user_data['uf'] = funcoes.tratamentos.salvar_uf(latitude, longitude, CHAVE_API_MAPS) #capturar estado
+    user_data['uf'] = funcoes.tratamentos.salvar_uf(latitude, longitude, CHAVE_API) #capturar estado
     
     print(f"ESTADO -> {user_data['uf']}")
     print(user_data)    
@@ -88,11 +86,12 @@ def save_data_longe(message):
 def save_data_longe(message):
         user_data['state_localizacao'] = 'confirmar cidade'
         print(message.text)
+        uf = message.text.title()
+        uf = unidecode(uf)
         uf_pesquisa = message.text.title().replace(" ", "_")
         uf_pesquisa = unidecode(uf_pesquisa)
-        user_data['estado'] = message.text
+        user_data['uf'] = uf
         busca = funcoes.buscas.consultar_estado(uf_pesquisa)
-        print('procurar por estado: ',busca, 'enviado:', message.text) 
         bot.send_message(message.chat.id, f"Agora informe em qual cidade de {busca} você está.")
         user_data['localizacao'] = busca
         
@@ -105,44 +104,39 @@ def save_data_longe(message):
         cidade_pesquisa = unidecode(cidade_pesquisa)
         user_data['cidade'] = message.text
         busca = funcoes.buscas.consultar_cidade(cidade_pesquisa, user_data['localizacao'])
-        print('procurar por cidade -> ',busca, 'enviado ->', message.text)
         bot.send_message(message.chat.id, f"Agora informe em qual bairro de {busca} você está.")
 
 @bot.message_handler(func=lambda message: True and user_data['state_localizacao'] == 'confirmar bairro')
 def save_data_longe(message):
     user_data['state_localizacao'] = 'confirmar rua'
-    bairro_pesquisa = message.text.title().replace(" ", "_")
-    bairro_pesquisa = unidecode(bairro_pesquisa)
     user_data['bairro'] = message.text
-    print('procurar por bairro -> ',bairro_pesquisa, 'enviado ->', message.text)
     bot.send_message(message.chat.id, f"Agora informe em qual rua de {message.text} você está.")
 
 
 @bot.message_handler(func=lambda message: True and user_data['state_localizacao'] == 'confirmar rua')
 def save_data_longe(message):
-    rua_pesquisa = message.text.title().replace(" ", "_")
-    rua_pesquisa = unidecode(rua_pesquisa)
+    user_data['state_localizacao'] = 'manual'
     user_data['rua'] = message.text
-    print('procurar por bairro -> ',rua_pesquisa, 'enviado ->', message.text)
-    bot.send_message(message.chat.id, f"Agora informe em qual rua de {message.text} você está.")
     
-    estado = user_data['estado']
+    estado = user_data['uf']
     municipio = user_data['cidade']
     bairro = user_data['bairro']
     rua = user_data['rua']
+    print(estado, municipio, bairro, rua)
 
     resultados = funcoes.tratamentos.verificar_endereco(estado, municipio, bairro, rua)
+    user_data['localizacao'] = resultados
+    
+    conexao_mongo.adicionar_dados(user_data, user_data['uf'].title())
+    del user_data['cidade']
+    del user_data['bairro']
+    del user_data['rua']
 
-    if resultados:
-        # Processar os resultados da pesquisa
-        for resultado in resultados:
-            print(f"Nome: {resultado['name']}")
-            print(f"Endereço: {resultado['formatted_address']}")
-            print()
+    bot.send_message(message.chat.id, f"Tudo ok! Você pode ver por esse e outros locais em [link plataforma]!")
 
-        else:
-            print("Nenhum resultado encontrado.")
-
-#r### tratar a localização enviada manulamente -- fazer a busca pelo nome do estado
 
 bot.polling()
+
+#r### validar localizacao por texto pelo google maps.
+
+
