@@ -91,6 +91,8 @@ def save_data_longe(message):
         print(message.text)
         resultados = funcoes.consultas_maps.verificar_endereco(message.text)
         lat,long = resultados[0], resultados[1]
+        user_data['localizacao'] = [lat, long]
+        user_data['uf'] =  funcoes.consultas_maps.salvar_uf(resultados)
         print(user_data)
         bot.send_location(message.chat.id, lat,long)
 
@@ -99,20 +101,21 @@ def save_data_longe(message):
         nao_button = types.InlineKeyboardButton('Não', callback_data='nao')
         markup.row(sim_button, nao_button)
         # Envia a mensagem com o teclado de opções
-        bot.send_message(message.chat.id, "é aqui que o prblema se encontra?", reply_markup=markup)
+        bot.send_message(message.chat.id, "é aqui que o problema se encontra?", reply_markup=markup)
 
 @bot.callback_query_handler(func=lambda call: True and user_data['state_localizacao'] == 'confirmar mapa')
 def handle_callback_query(call):
     if call.data == 'sim':
+        conexao_mongo.adicionar_dados(user_data, user_data['uf'])
+        user_data['state_localizacao'] == 'manual'
         bot.send_message(call.message.chat.id, f"Tudo ok! Você pode ver por esse e outros locais em [link plataforma]!")
-        bot.stop_polling()
+
     elif call.data == 'nao':
         user_data['state_localizacao'] = 'confirmar localizacao'
         bot.send_message(call.message.chat.id, "Entendi. vamos tentar de novo, dessa vez, coloque mais detalhes, como bairro, cidade,nome da rua, pu até mesmo um n° rsidencial próximo.")
 
 
 bot.polling()
-
-#r### validar localizacao por texto pelo google maps.               
+           
 
 
