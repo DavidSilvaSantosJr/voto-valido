@@ -2,7 +2,6 @@ import requests
 import unidecode
 import json
 from keys import key
-
 api_key = key
 
 
@@ -44,10 +43,14 @@ def salvar_uf(coordenadas):
         for result in data['results']:
             for component in result['address_components']:
                 if 'administrative_area_level_1' in component['types']:
-                    uf = component['long_name'].title()
+                    uf = component['short_name'].title()
                     uf = unidecode.unidecode(uf)
-                    return uf
+        for result in data['results']:
+            for component in result['address_components']:
+                if 'locality' in component['types']:
+                    cidade = component["long_name"].title()
+                    cidade = unidecode.unidecode(cidade)
+                    return [uf, cidade]
+
     return "pane no sistema"
     
-v = verificar_endereco("alameda manoel angelo minucci, Sao Paulo, Ourinhos")
-print(v)
