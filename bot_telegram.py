@@ -19,7 +19,7 @@ def send_welcome(message):
     itembtn4 = types.KeyboardButton('Visitar a plataforma, e ter mais detalhes!')
     markup.row(itembtn1, itembtn2)
     markup.row(itembtn3, itembtn4)
-    bot.send_message(message.chat.id, funcoes.tratamentos.apresentacao() , reply_markup=markup)
+    bot.send_message(message.chat.id, funcoes.tratamentos.texto_padrao(boas_vindas=True) , reply_markup=markup)
     # Variáveis globais
 data = None
 user_data = {}
@@ -109,7 +109,7 @@ def handle_callback_query(call):
     if call.data == 'sim':
         user_data['state_localizacao'] == 'manual'
         conexao_mongo.adicionar_dados(user_data, user_data['uf'])
-        bot.send_message(call.message.chat.id, f"Tudo ok! Você pode ver por esse e outros locais em [link plataforma]!")
+        bot.send_message(call.message.chat.id, funcoes.tratamentos.texto_padrao(agradecimento=True))
 
     elif call.data == 'nao':
         user_data['state_localizacao'] = 'confirmar localizacao'
@@ -128,7 +128,7 @@ def busca_Semana(message):
 @bot.message_handler(func=lambda message: True and user_data['state_localizacao'] == True)
 def busca_Semana_consulta(message):
     user_data['state_busca'] = 'aguardando buscas'
-    cidade_consulta = message.text.title()
+    cidade_consulta = message.text.title() 
     buscas.append(cidade_consulta)
 
     bot.send_message(message.chat.id, f"esses foram os últimos acontecimentos da sesmana em {message.text}:")
