@@ -2,7 +2,8 @@ import telebot
 from telebot import types
 import conexao_mongo
 import unidecode
-import funcoes.buscas, funcoes.consultas_maps, funcoes.tratamentos
+import funcoes.ia_gcp
+import funcoes.buscas, funcoes.consultas_maps, funcoes.tratamentos, funcoes.ia_gcp
 import keys
 api_key = keys.key 
 
@@ -10,7 +11,7 @@ api_key = keys.key
 bot = telebot.TeleBot(keys.CHAVE_API) #criação/conexão com a  chave api
 
 # Função para lidar com o comando /start
-@bot.message_handler(commands=['start'])
+@bot.message_handler(commands=['start', 'recomeçar'])
 def send_welcome(message):
     markup = types.ReplyKeyboardMarkup()
     itembtn1 = types.KeyboardButton('Relatar um problema que estou no local.')
@@ -49,6 +50,7 @@ def ask_location_sem_local(message):
     user_data['state_localizacao'] = False
     bot.send_message(message.chat.id, "insira o nome do estado: ")
 
+#tratamentos de mensagens
 @bot.message_handler(content_types=['location'])
 def ask_image(message):
     user_data['state_localizacao'] = 'gps'
@@ -66,24 +68,35 @@ def save_photo(message):
     bot.send_message(message.chat.id, "Por favor, descreva o problema:")
     print(user_data)
 
+
 @bot.message_handler(func=lambda message: True and user_data['state_localizacao'] == 'gps')
 def save_data(message):
-    user_data['descricao'] = message.text
-    conexao_mongo.adicionar_dados(user_data, user_data['uf']) 
-    bot.send_message(message.chat.id, f"Tudo ok! Você pode ver por esse e outros locais em [link plataforma]!")
-    for k,v in user_data.items():
-        print(k,' : ',v)
+    #verificar toxidade
+    toxicidade = funcoes.ia_gcp.analise_texto_toxico(message.text)
+    if toxicidade:
+        bot.send_message(message.chat.id, "Opa! cuidado com as palavras, insira novamente a descrição. Seja cortez, ninguém gosta da falta de educação!")
 
-#armazena a descricao se ja tiver localização
+    if not toxicidade:
+        user_data['descricao'] = message.text
+        print(user_data)
+        conexao_mongo.adicionar_dados(user_data, user_data['uf']) 
+        bot.send_message(message.chat.id, funcoes.tratamentos.texto_padrao(agradecimento=True))
+
+
+#tratamento para localizçaõ inserida manualmente
 @bot.message_handler(func=lambda message: True and user_data['state_localizacao'] == 'sem confirmacao')
 def save_data_longe(message): 
-    user_data['state_localizacao'] = 'confirmar localizacao'
-    user_data['descricao'] = message.text
-    print(user_data)
-    bot.send_message(message.chat.id, 'insira o endereço do local.')
-    bot.send_message(message.chat.id, 'diga o estado, cidade, bairro e rua. Atente-se aos detalhes!')
+    #verificar toxidade
+    toxicidade = funcoes.ia_gcp.analise_texto_toxico(message.text)
+    if toxicidade:
+        user_data['state_localizacao'] = 'sem confirmacao'
+        bot.send_message(message.chat.id, "Opa! cuidado com as palavras, insira novamnte a descrição. Seja cortez, ninguém gosta da falta de educação!")
     
-
+    else:
+        user_data['state_localizacao'] = 'confirmar localizacao'
+        user_data['descricao'] = message.text
+        bot.send_message(message.chat.id, 'insira o endereço do local.\n\ndiga o estado, cidade, bairro e rua. Atente-se aos detalhes!')
+    
 @bot.message_handler(func=lambda message: True and user_data['state_localizacao'] == 'confirmar localizacao')
 def save_data_longe(message):
         user_data['state_localizacao'] = 'confirmar mapa'
@@ -108,14 +121,17 @@ def save_data_longe(message):
 def handle_callback_query(call):
     if call.data == 'sim':
         user_data['state_localizacao'] == 'manual'
+        user_data['like'] = 0
+        user_data['deslike'] = 0
+        user_data['comentarios'] = {}
         conexao_mongo.adicionar_dados(user_data, user_data['uf'])
         bot.send_message(call.message.chat.id, funcoes.tratamentos.texto_padrao(agradecimento=True))
 
     elif call.data == 'nao':
         user_data['state_localizacao'] = 'confirmar localizacao'
-        bot.send_message(call.message.chat.id, "Entendi. vamos tentar de novo, dessa vez, coloque mais detalhes, como bairro, cidade,nome da rua, pu até mesmo um n° rsidencial próximo.")
+        bot.send_message(call.message.chat.id, "Entendi. vamos tentar de novo, dessa vez, coloque mais detalhes, como bairro, cidade,nome da rua, ou até mesmo um n° rsidencial próximo.")
 
-
+#resumo da semana
 buscas = []
 @bot.message_handler(func=lambda message: True and user_data['state_localizacao'] == False)
 def busca_Semana(message):
