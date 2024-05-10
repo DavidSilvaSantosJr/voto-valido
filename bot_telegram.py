@@ -28,7 +28,7 @@ user_data = {}
 
 @bot.message_handler(func=lambda message: message.text == 'Relatar um problema que estou no local.')
 def ask_location(message):
-    user_data['data_hora'] = message.date
+    user_data['time'] = message.date
     markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
     itembtn = types.KeyboardButton('Enviar Localização', request_location=True)
     markup.add(itembtn)
@@ -36,8 +36,8 @@ def ask_location(message):
 
 @bot.message_handler(func=lambda message: message.text == 'Relatar um problema que vi, mas não estou no local.')
 def ask_location_sem_local(message):
-    user_data['data_hora'] = message.date
-    user_data['state_localizacao'] = 'sem confirmacao'
+    user_data['time'] = message.date
+    user_data['state_location'] = 'sem confirmacao'
     bot.send_message(message.chat.id, "Por favor, envie a foto do problema:")
 
 @bot.message_handler(func=lambda message: message.text == 'visitar a plataforma, e ter um panorama geral!')
@@ -47,18 +47,18 @@ def ask_location_sem_local(message):
 
 @bot.message_handler(func=lambda message: message.text == 'Resumo da última semana')
 def ask_location_sem_local(message):
-    user_data['state_localizacao'] = False
+    user_data['state_location'] = False
     bot.send_message(message.chat.id, "insira o nome do estado: ")
 
 #tratamentos de mensagens
 @bot.message_handler(content_types=['location'])
 def ask_image(message):
-    user_data['state_localizacao'] = 'gps'
+    user_data['state_location'] = 'gps'
     coordenadas = [message.location.latitude, message.location.longitude]
-    user_data['localizacao'] = [message.location.latitude, message.location.longitude]
+    user_data['location'] = [message.location.latitude, message.location.longitude]
     array_local = funcoes.consultas_maps.salvar_uf(coordenadas) #capturar estado (uf) e  cidade
     user_data['uf'] = array_local[0].upper()
-    user_data['cidade'] = array_local[1]
+    user_data['city'] = array_local[1]
     print(user_data)    
     bot.send_message(message.chat.id, "Por favor, envie a foto do problema:")
 
@@ -69,7 +69,7 @@ def save_photo(message):
     print(user_data)
 
 
-@bot.message_handler(func=lambda message: True and user_data['state_localizacao'] == 'gps')
+@bot.message_handler(func=lambda message: True and user_data['state_location'] == 'gps')
 def save_data(message):
     #verificar toxidade
     toxicidade = funcoes.ia_gcp.analise_texto_toxico(message.text)
@@ -84,28 +84,28 @@ def save_data(message):
 
 
 #tratamento para localizçaõ inserida manualmente
-@bot.message_handler(func=lambda message: True and user_data['state_localizacao'] == 'sem confirmacao')
+@bot.message_handler(func=lambda message: True and user_data['state_location'] == 'sem confirmacao')
 def save_data_longe(message): 
     #verificar toxidade
     toxicidade = funcoes.ia_gcp.analise_texto_toxico(message.text)
     if toxicidade:
-        user_data['state_localizacao'] = 'sem confirmacao'
+        user_data['state_location'] = 'sem confirmacao'
         bot.send_message(message.chat.id, "Opa! cuidado com as palavras, insira novamnte a descrição. Seja cortez, ninguém gosta da falta de educação!")
     
     else:
-        user_data['state_localizacao'] = 'confirmar localizacao'
+        user_data['state_location'] = 'confirmar localizacao'
         user_data['descricao'] = message.text
         bot.send_message(message.chat.id, 'insira o endereço do local.\n\ndiga o estado, cidade, bairro e rua. Atente-se aos detalhes!')
     
-@bot.message_handler(func=lambda message: True and user_data['state_localizacao'] == 'confirmar localizacao')
+@bot.message_handler(func=lambda message: True and user_data['state_location'] == 'confirmar localizacao')
 def save_data_longe(message):
-        user_data['state_localizacao'] = 'confirmar mapa'
+        user_data['state_location'] = 'confirmar mapa'
         print(message.text)
         resultados = funcoes.consultas_maps.verificar_endereco(message.text)
-        user_data['localizacao'] = resultados[0], resultados[1]
+        user_data['location'] = resultados[0], resultados[1]
         array_local = funcoes.consultas_maps.salvar_uf(resultados) #capturar estado (uf)
         user_data['uf'] = array_local[0].upper()
-        user_data['cidade'] = array_local[1].title()
+        user_data['city'] = array_local[1].title()
         print(user_data)
         bot.send_location(message.chat.id, resultados[0], resultados[1])
 
@@ -117,31 +117,36 @@ def save_data_longe(message):
         bot.send_message(message.chat.id, "verifique se é aqui que o problema se encontra.", reply_markup=markup)
         bot.send_message(message.chat.id, "Você pode tocar no mapa e dar zoom, para ter mais precisão na verificação.")
 
-@bot.callback_query_handler(func=lambda call: True and user_data['state_localizacao'] == 'confirmar mapa')
+@bot.callback_query_handler(func=lambda call: True and user_data['state_location'] == 'confirmar mapa')
 def handle_callback_query(call):
     if call.data == 'sim':
-        user_data['state_localizacao'] == 'manual'
+        user_data['state_location'] == 'manual'
         user_data['like'] = 0
         user_data['deslike'] = 0
-        user_data['comentarios'] = {}
+        user_data['coments'] = {
+            'time' : user_data['time'],
+            'like' : 0,
+            'deslike' : 0
+        }
+    
         conexao_mongo.adicionar_dados(user_data, user_data['uf'])
         bot.send_message(call.message.chat.id, funcoes.tratamentos.texto_padrao(agradecimento=True))
 
     elif call.data == 'nao':
-        user_data['state_localizacao'] = 'confirmar localizacao'
+        user_data['state_location'] = 'confirmar localizacao'
         bot.send_message(call.message.chat.id, "Entendi. vamos tentar de novo, dessa vez, coloque mais detalhes, como bairro, cidade,nome da rua, ou até mesmo um n° rsidencial próximo.")
 
 #resumo da semana
 buscas = []
-@bot.message_handler(func=lambda message: True and user_data['state_localizacao'] == False)
+@bot.message_handler(func=lambda message: True and user_data['state_location'] == False)
 def busca_Semana(message):
-    user_data['state_localizacao'] = True
+    user_data['state_location'] = True
     bot.send_message(message.chat.id, "Agora a cidade")
     uf_consulta = message.text.upper()
     uf_consulta = unidecode.unidecode(uf_consulta)
     buscas.append(uf_consulta)
 
-@bot.message_handler(func=lambda message: True and user_data['state_localizacao'] == True)
+@bot.message_handler(func=lambda message: True and user_data['state_location'] == True)
 def busca_Semana_consulta(message):
     user_data['state_busca'] = 'aguardando buscas'
     cidade_consulta = message.text.title() 
