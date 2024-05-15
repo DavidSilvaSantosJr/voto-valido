@@ -14,4 +14,8 @@ export default createGlobalStyle`
     box-sizing: border-box;
     border: none;
   }
+
+  .flex {
+    display: flex;
+  }
 `
