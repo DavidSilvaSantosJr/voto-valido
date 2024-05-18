@@ -1,9 +1,11 @@
+import asyncio
 import telebot
 from telebot import types
 import conexao_mongo
 import unidecode
 import funcoes.buscas, funcoes.consultas_maps, funcoes.tratamentos, funcoes.ia_gcp
 import keys
+from random import randint
 api_key = keys.key 
 
 
@@ -101,8 +103,8 @@ def save_data(message):
         user_data['descricao'] = message.text
         user_data['coments'] = {
             'time' : user_data['time'],
-            'like' : 0,
-            'deslike' : 0
+            'like' : randint(0, 15),
+            'deslike' : randint(0,4)
         }
 
         print(user_data)  
@@ -137,6 +139,7 @@ def save_data_longe(message):
         array_local = funcoes.consultas_maps.salvar_uf(resultados) #capturar estado (uf)
         user_data['uf'] = array_local[0].upper()
         user_data['city'] = array_local[1].title()
+        user_data['bairro'] = array_local[2].title()
         print(user_data)
         bot.send_location(chat_id, resultados[0], resultados[1])
 
@@ -149,16 +152,17 @@ def save_data_longe(message):
         bot.send_message(chat_id, "Você pode tocar no mapa e dar zoom, para ter mais precisão na verificação.")
 
 @bot.callback_query_handler(func=lambda call: True and user_data['state_location'] == 'confirmar mapa')
-def handle_callback_query(message):
-    chat_id = message.chat.id
-    if message.data == 'sim':
+def handle_callback_query(call):
+    chat_id = call.message.chat.id
+    if call.data == 'sim':
         user_data['state_location'] == 'manual'
         user_data['like'] = 0
         user_data['deslike'] = 0
         user_data['coments'] = {
-            'time' : user_data['time'],
+            'time' : str(), #irá manipular formatos de data. Por isso a string
             'like' : 0,
-            'deslike' : 0
+            'deslike' : 0,
+            'coments': str()
         }
 
         conexao_mongo.adicionar_dados(user_data, user_data['uf'])
@@ -166,29 +170,28 @@ def handle_callback_query(message):
         del user_data['_id'] 
         bot.send_message(chat_id, funcoes.tratamentos.texto_padrao(agradecimento=True))
 
-    elif message.data == 'nao':
+    elif call.data == 'nao':
         user_data['state_location'] = 'confirmar localizacao'
         bot.send_message(chat_id, "Entendi. vamos tentar de novo, dessa vez, coloque mais detalhes, como bairro, cidade,nome da rua, ou até mesmo um n° rsidencial próximo.")
-
+        
 #resumo da semana
-buscas = []
+buscas = {} #[0]-> uf, [1]-> city
 @bot.message_handler(func=lambda message: True and user_data['state_location'] == False)
 def busca_Semana(message):
     user_data['state_location'] = True
     bot.send_message(message.chat.id, "Agora a cidade")
     uf_consulta = message.text.upper()
     uf_consulta = unidecode.unidecode(uf_consulta)
-    buscas.append(uf_consulta)
+    buscas['uf'] = uf_consulta
+
 
 @bot.message_handler(func=lambda message: True and user_data['state_location'] == True)
 def busca_Semana_consulta(message):
     chat_id = message.chat.id
     user_data['state_busca'] = 'aguardando buscas'
     cidade_consulta = message.text.title() 
-    buscas.append(cidade_consulta)
-
-    bot.send_message(chat_id, f"esses foram os últimos acontecimentos da sesmana em {message.text}:")
-    resposta_busca = funcoes.buscas.resumo_semana(buscas[0], buscas[1])
+    buscas['city'] = cidade_consulta
+    resposta_busca = funcoes.buscas.resumo_semana(buscas['uf'], buscas['city'])
     bot.send_message(chat_id, resposta_busca)
 
 #problema concluido.
