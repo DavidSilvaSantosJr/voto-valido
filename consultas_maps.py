@@ -45,12 +45,18 @@ def salvar_uf(coordenadas):
                 if 'administrative_area_level_1' in component['types']:
                     uf = component['short_name'].title()
                     uf = unidecode.unidecode(uf)
+
         for result in data['results']:
             for component in result['address_components']:
                 if 'locality' in component['types']:
                     cidade = component["long_name"].title()
                     cidade = unidecode.unidecode(cidade)
-                    return [uf, cidade]
 
+        for result in data['results']:
+            for component in result['address_components']:
+                if ('political' or 'sublocality' or 'sublocality_level_1') in component['types']:
+                    bairro = component['long_name'].title()
+                    bairro = unidecode.unidecode(bairro)
+                    return [uf, cidade, bairro]
+                
     return "pane no sistema"
-    
