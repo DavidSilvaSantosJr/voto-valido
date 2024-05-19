@@ -6,8 +6,7 @@ import bloco1 from '../../assets/bloco1.webp';
 export const ContentBanner = styled.div`
   background-image: url(${bloco1});
 
-  padding: 0 10rem 2rem 10rem;
-  width: 100vw;
+  padding: 0 10rem 2rem 10rem;  
 
   header {
     width: 100%;
@@ -34,13 +33,20 @@ export const ContentBanner = styled.div`
   }
 
   .informations {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
     .logo {
       color: ${Theme.colors.yellow};
-      font-size: 8rem;
-      line-height: 10rem;
+      font-size: 5rem;            
+
+      display: flex;
+      flex-direction: column;
+      align-items: center;
 
       span {
-        display: block;
+        font-weight: 800;
       }
     }
   }
@@ -50,8 +56,8 @@ export const ContentBanner = styled.div`
     margin-top: 1rem;
     span {
       color: white;
-      font-size: 1.5rem;
-      line-height: 3rem;
+      font-size: 1.25rem;
+      line-height: 2rem;
     }
   }
 `

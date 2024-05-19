@@ -9,13 +9,18 @@ export const FooterContent = styled.footer`
   align-items: center;
 
   background-color: ${Theme.colors.blueLogo};
-  height: 200px;
+  height: 200px;  
 
   h1 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    color: ${Theme.colors.yellow};
+    color: ${Theme.colors.yellow};   
+    
+    span {
+      font-weight: 800;
+      font-size: 3rem;
+    }
   }
 
   > span {
