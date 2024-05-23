@@ -34,7 +34,7 @@ def resumo_semana(cidade): #filtar os 10 com mais likes e comentarios, dos últi
             resposta_formatada = f"\n{resposta_formatada} {i['descricao']}, no bairro {i['bairro']} com {i['like']} like(s); \n\n"
 
 
-    resposta_formatada += str(f"\nVocê também pode ver os problemas em mapas, e entender melhor o que acontece em {cidade}, futuramente em uma plataforma que estamos desenvolvendo!")
+    resposta_formatada += str(f"\nVocê também pode ver os problemas em mapas, e entender melhor o que acontece na sua e em outras cidades futuramente em uma plataforma que estamos desenvolvendo!")
 
 
     return resposta_formatada
