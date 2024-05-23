@@ -4,28 +4,26 @@ from telebot import types
 import conexao_mongo
 import funcoes.buscas, funcoes.consultas_maps, funcoes.tratamentos, funcoes.ia_gcp
 import keys
-from datetime import datetime
 from unidecode import unidecode
+from datetime import datetime
 api_key = keys.key 
 
 
 bot = telebot.TeleBot(keys.CHAVE_API) #criação/conexão com a  chave api
 
 # Função para lidar com o comando /start
-@bot.message_handler(commands=['start', 'recomeçar'])
+@bot.message_handler(commands=['start'])
 def send_welcome(message):
     markup = types.ReplyKeyboardMarkup()
     itembtn1 = types.KeyboardButton('Relatar um problema que estou no local.')
     itembtn2 = types.KeyboardButton('Relatar um problema que vi, mas não estou no local.')
-    itembtn3 = types.KeyboardButton('Consultar relatos mais repercutidos da cidade.')
+    itembtn3 = types.KeyboardButton('consultar relatos mais repercutidos da cidade.')
     itembtn4 = types.KeyboardButton('Encontrei um problema que foi resolvido!')
     markup.row(itembtn1, itembtn2)
     markup.row(itembtn3, itembtn4)
     bot.send_message(message.chat.id, funcoes.tratamentos.texto_padrao(boas_vindas=True) , reply_markup=markup)
-    # Variáveis globais
-user_data = {}
 
-#localizado = True
+user_data = {}
 
 @bot.message_handler(func=lambda message: message.text == 'Relatar um problema que estou no local.')
 def ask_location(message):
@@ -35,8 +33,8 @@ def ask_location(message):
     user_data['state_problem'] = 'unsolved'
     user_data['state_location'] = 'gps'
 
-    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-    itembtn = types.KeyboardButton('compartilhar Localização 📍', request_location=True) #######fechar o bbotão dps de clicar ########
+    markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
+    itembtn = types.KeyboardButton('compartilhar Localização 📍', request_location=True)
     markup.add(itembtn)
     bot.send_message(chat_id, "Por favor, compartilhe sua localização atual, cicando no botão abaixo: ⬇️", reply_markup=markup)
 
@@ -77,16 +75,13 @@ def ask_image(message):
         user_data['state_location'] = 'gps'
         coordenadas = [message.location.latitude, message.location.longitude]
         user_data['location'] = [message.location.latitude, message.location.longitude]
-        array_local = funcoes.consultas_maps.salvar_uf(coordenadas) #capturar estado (uf) e  cidade
-
+        array_local = funcoes.consultas_maps.salvar_uf_bairro_cidade(coordenadas) #capturar estado (uf) e  cidade
         user_data['uf'] = array_local[0].upper()
-        user_data['city'] = array_local[1]  
+        user_data['city'] = array_local[1] 
         user_data['bairro'] = array_local[2].title()
-        city_formated = array_local[1]
-        city_formated = unidecode(city_formated)
-        user_data['city_formated'] = city_formated.lower()
+        user_data['city_formated'] = unidecode(user_data['city'].lower())
         user_data['city_formated'] = user_data['city_formated'].replace("'", "")
-        bot.send_message(chat_id, "Por favor, envie a foto do problema:", reply_markup=types.ReplyKeyboardRemove())
+        bot.send_message(chat_id, "Por favor, envie a foto do problema:")
     
 
 @bot.message_handler(content_types=['photo'])
@@ -106,10 +101,13 @@ def save_data(message):
 
     if not toxicidade:
         user_data['descricao'] = message.text
+        user_data['like'] = 0
+        user_data['deslike'] = 0
         user_data['coments'] = {
-            'time' : user_data['time'],
-            'like' : 0,
-            'deslike' : 0
+            'time' : datetime.now(), #irá manipular formatos de data. Por isso a string
+            'like' : int(),
+            'deslike' : int(),
+            'coment': str()
         }
  
         conexao_mongo.adicionar_dados(user_data)
@@ -136,18 +134,14 @@ def save_data_longe(message):
 def save_data_longe(message):
         chat_id = message.chat.id
         user_data['state_location'] = 'confirmar mapa'
-        resultados = funcoes.consultas_maps.verificar_endereco(message.text)
+        resultados = funcoes.consultas_maps.salvar_latlong_endereco(message.text)
         user_data['location'] = resultados[0], resultados[1]
-        array_local = funcoes.consultas_maps.salvar_uf(resultados) #capturar estado (uf)
+        array_local = funcoes.consultas_maps.salvar_uf_bairro_cidade(resultados) #capturar estado (uf)
         user_data['uf'] = array_local[0].upper()
         user_data['city'] = array_local[1].title()
         user_data['bairro'] = array_local[2].title()
-
-        city_formated = array_local[1]
-        city_formated = unidecode(city_formated)
-        user_data['city_formated'] = city_formated.lower()
+        user_data['city_formated'] = unidecode(user_data['city'].lower())
         user_data['city_formated'] = user_data['city_formated'].replace("'", "")
-
         bot.send_location(chat_id, resultados[0], resultados[1])
 
         markup = types.InlineKeyboardMarkup()
