@@ -5,7 +5,7 @@ from keys import key
 api_key = key
 
 
-def verificar_endereco(endereco):
+def salvar_latlong_endereco(endereco):
     # Extrair informações da mensagem
     endereco = endereco.replace(" ", "%20")
     
@@ -31,7 +31,7 @@ def verificar_endereco(endereco):
         print(response.status_code)
 
 
-def salvar_uf(coordenadas):
+def salvar_uf_bairro_cidade(coordenadas): #list
     base_url = "https://maps.googleapis.com/maps/api/geocode/json"
     params = {
         "latlng": f"{coordenadas[0]},{coordenadas[1]}",
@@ -43,20 +43,17 @@ def salvar_uf(coordenadas):
         for result in data['results']:
             for component in result['address_components']:
                 if 'administrative_area_level_1' in component['types']:
-                    uf = component['short_name'].title()
-                    uf = unidecode.unidecode(uf)
+                    uf = component['short_name']
 
         for result in data['results']:
             for component in result['address_components']:
                 if 'locality' in component['types']:
-                    cidade = component["long_name"].title()
-                    cidade = unidecode.unidecode(cidade)
-
+                    cidade = component["long_name"]
+                    
         for result in data['results']:
             for component in result['address_components']:
                 if ('political' or 'sublocality' or 'sublocality_level_1') in component['types']:
-                    bairro = component['long_name'].title()
-                    bairro = unidecode.unidecode(bairro)
+                    bairro = component['long_name']
                     return [uf, cidade, bairro]
                 
     return "pane no sistema"
