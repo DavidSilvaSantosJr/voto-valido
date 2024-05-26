@@ -5,6 +5,9 @@ import { ContentHome } from "./style";
 import ButtonMap from "../../components/ButtonMap";
 import votoSocial from "../../assets/voto-redesocial.png";
 import votoCompleto from "../../assets/voto_completo.png"
+import icon1 from "../../assets/icon1.webp"
+import icon2 from "../../assets/icon2.webp"
+import icon3 from "../../assets/icon3.webp"
 
 export default function Home() {
   return (
@@ -16,17 +19,17 @@ export default function Home() {
       </div>
       <section className="cards">
         <div className="card">
-          <div className="img"><img src="" alt="Transparência" /></div>
+          <div className="img"><img src={icon1} alt="Transparência" /></div>
           <h1>TRANSPARÊNCIA</h1>
           <p>Tenha acesso direto às informações sobre o que está acontecendo na sua cidade.</p>
         </div>
         <div className="card">
-          <div className="img"><img src="" alt="Projeto Moderno" /></div>
+          <div className="img"><img src={icon2} alt="Projeto Moderno" /></div>
           <h1>PROJETO MODERNO</h1>
           <p>Contribua para o debate público compartilhando suas próprias observações e experiências.</p>          
         </div>
         <div className="card">
-          <div className="img"><img src="" alt="Comunicação" /></div>
+          <div className="img"><img src={icon3} alt="Comunicação" /></div>
           <h1>COMUNICAÇÃO</h1>
           <p>Atualizações em tempo real sobre projetos governamentais na sua região</p>          
         </div>

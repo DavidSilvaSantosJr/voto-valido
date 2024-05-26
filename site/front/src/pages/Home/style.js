@@ -2,6 +2,7 @@ import styled from "styled-components";
 import Theme from "../../styles/theme";
 
 import bloco2 from "../../assets/bloco2.jpg"
+import bloco3 from "../../assets/bloco3.webp"
 
 export const ContentHome = styled.main`
   .register {
@@ -49,6 +50,12 @@ export const ContentHome = styled.main`
 
       &:hover {
         transform: scale(1.1);
+      }
+
+      .img {
+        img {
+          width: 7.5rem;
+        }
       }
 
       h1 {
@@ -167,10 +174,14 @@ export const ContentHome = styled.main`
   }
 
   .about {
-    margin-bottom: 50px;
+    padding-bottom: 50px;
     display: flex;
     flex-direction: column;
     align-items: center;
+
+    background-image: url(${bloco3});
+    background-position: center;
+    background-size: cover;
 
     .logo {      
       img {
