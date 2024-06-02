@@ -9,6 +9,7 @@ A instalação pode ser conferida com o seguinte comando no terminal
 
 ```
   node --version 
+  npm --version
 ```
 
 #### 1º: Instalar as dependências:
