@@ -1,4 +1,3 @@
-import asyncio
 import conexao_mongo
 import pymongo
 import telebot
@@ -6,20 +5,21 @@ from telebot import types
 from telebot import TeleBot, types
 import funcoes.buscas, funcoes.consultas_maps, funcoes.tratamentos
 import keys
-from unidecode import unidecode
 from datetime import datetime
 from problemas import dic_problemas, topicos
 from pprint import pprint
+
 api_key = keys.key
 bot = telebot.TeleBot(keys.CHAVE_API) #criação/conexão com a  chave api
 client = pymongo.MongoClient(keys.STRING_CONNECTION)
+
 user_data = {} # armazena chat_id do usuário, e ao consultar o chat_id para salavar, busca o id referente ao user, não ao escopo
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     chat_id = message.chat.id
     user_data[chat_id] = {'chat_id':chat_id}
-    print('dic inteiro', user_data)
-    print(user_data[chat_id])
+    print('dic inteiro:', user_data,'\ndic do user:',user_data[chat_id])
+
     markup = types.ReplyKeyboardMarkup()
     btn_no_local = types.KeyboardButton('Relatar um novo problema.')
     btn_solved = types.KeyboardButton('Encontrei um problema que foi resolvido!')
@@ -33,8 +33,8 @@ def send_welcome(message):
 def relatar_novo_problema(message):
     chat_id = message.chat.id
     user_data[chat_id] = {'time':datetime.now()}
-    conexao_mongo.adicionar_dados(user_data[chat_id])
-    print(user_data[chat_id])
+    conexao_mongo.adicionar_dados_incompletos(user_data[chat_id])
+    print(user_data)
     bot.send_message(chat_id, 'envie uma foto do problema que você encontrou\nLembe-se, apenas UMA FOTO')
 
 
@@ -44,9 +44,10 @@ def salvar_types(message):
     
     if message.content_type == 'photo':
       imagem = funcoes.tratamentos.salvar_imagem(message)
-      user_data[chat_id] = {'imagem' : imagem}
-      conexao_mongo.atualizar(chat_id, user_data[chat_id])
+      user_data[chat_id]['imagem'] = imagem
+      conexao_mongo.atualizar(user_data[chat_id]['_id'], user_data[chat_id])
       print(user_data)
+
       markup = types.InlineKeyboardMarkup()
       sim_button = types.InlineKeyboardButton('Sim', callback_data='sim_no_local')
       nao_button = types.InlineKeyboardButton('Não', callback_data='nao_no_local')
@@ -54,18 +55,19 @@ def salvar_types(message):
       bot.send_message(chat_id, "Você está no local do problema?", reply_markup=markup)
 
     if message.content_type == 'location':
-        'time'['state_location'] = 'gps'
         coordenadas = [message.location.latitude, message.location.longitude]
-        user_data['lat_long'] = [message.location.latitude, message.location.longitude]
-        user_data['localizacao'] = funcoes.consultas_maps.salvar_uf_bairro_cidade(coordenadas)
+        user_data[chat_id]['state_location'] = 'gps'
+        try:
+            user_data[chat_id]['localizacao'] = funcoes.consultas_maps.salvar_uf_bairro_cidade(coordenadas)
+            conexao_mongo.atualizar(user_data[chat_id]['_id'], user_data[chat_id])
+        except UnboundLocalError:
+            bot.send_message(chat_id, "Ops, por favor, clique aqui em /start \nvamos tentar de novo, não achei o local.\n:( ")
+        
         markup = types.InlineKeyboardMarkup()
         for topic in dic_problemas:
-            global chave_codificada
-            chave_codificada = topic
-            btn_categoria = types.InlineKeyboardButton(topic, callback_data=chave_codificada)
+            btn_categoria = types.InlineKeyboardButton(topic, callback_data=topic)
             markup.row(btn_categoria)
         bot.send_message(chat_id, "Selecione abaixo uma categoria para o problema encontrado:", reply_markup=markup)
-        ### bot.register_next_step_handler(call.message, escolher_categoria)
         
 @bot.callback_query_handler(func=lambda call: call.data in ('nao_no_local','sim_no_local'))
 def receber_localizacao(call):
