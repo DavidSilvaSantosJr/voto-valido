@@ -7,6 +7,7 @@ import funcoes.buscas, funcoes.consultas_maps, funcoes.tratamentos
 import keys
 from datetime import datetime
 from problemas import dic_problemas, topicos
+from pprint import pprint
 
 api_key = keys.key
 bot = telebot.TeleBot(keys.CHAVE_API) #criação/conexão com a  chave api
@@ -17,6 +18,7 @@ user_data = {} # armazena chat_id do usuário, e ao consultar o chat_id para sal
 def send_welcome(message):
     chat_id = message.chat.id
     user_data[chat_id] = {'chat_id':chat_id}
+    print('dic inteiro:', user_data,'\ndic do user:',user_data[chat_id])
 
     markup = types.ReplyKeyboardMarkup()
     btn_no_local = types.KeyboardButton('Relatar um novo problema.')
@@ -32,6 +34,7 @@ def relatar_novo_problema(message):
     chat_id = message.chat.id
     user_data[chat_id] = {'time':datetime.now()}
     conexao_mongo.adicionar_dados_incompletos(user_data[chat_id])
+    print(user_data)
     bot.send_message(chat_id, 'envie uma foto do problema que você encontrou\nLembe-se, apenas UMA FOTO')
 
 
@@ -43,6 +46,7 @@ def salvar_types(message):
       imagem = funcoes.tratamentos.salvar_imagem(message)
       user_data[chat_id]['imagem'] = imagem
       conexao_mongo.atualizar(user_data[chat_id]['_id'], user_data[chat_id])
+      print(user_data)
 
       markup = types.InlineKeyboardMarkup()
       sim_button = types.InlineKeyboardButton('Sim', callback_data='sim_no_local')
@@ -124,6 +128,7 @@ def salvar_local_categoria(message):
         bot.send_message(chat_id, funcoes.tratamentos.texto_padrao(agradecimento=True))
         del user_data[chat_id]['_id']
         del user_data[chat_id]
+        pprint(user_data)
 
 #sub-tópicos selecionados//recebe as categorias
 @bot.callback_query_handler(func=lambda call: call.data in topicos)
