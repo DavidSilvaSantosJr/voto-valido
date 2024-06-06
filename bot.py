@@ -129,7 +129,6 @@ def salvar_local_categoria(message):
         del user_data[chat_id]['_id']
         del user_data[chat_id]
         pprint(user_data)
-        print()
 
 #sub-tópicos selecionados//recebe as categorias
 @bot.callback_query_handler(func=lambda call: call.data in topicos)
