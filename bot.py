@@ -73,7 +73,11 @@ def salvar_types(message):
 def receber_localizacao(call):
     chat_id = call.message.chat.id
     if call.data == 'nao_no_local':
-        bot.send_message(chat_id, "Então escreva pra mim o local do problema\n\nInsira o estado, cidade, bairro e rua...")
+        user_data[chat_id]['state_location'] = 'manual'
+        user_data[chat_id]['try_location'] = 1
+        bot.send_message(chat_id, "Então escreva pra mim o local do problema\n\nInsira o estado, cidade, bairro e rua...\n\n")
+        bot.send_message(chat_id, "Você também pode inserir o nome de um local, como: 'Escola x', 'praça da ciade','UPA da cidade'...")
+
     elif call.data == 'sim_no_local':
         markup = types.ReplyKeyboardMarkup(one_time_keyboard=True)
         itembtn = types.KeyboardButton('compartilhar Localização 📍', request_location=True)
@@ -84,30 +88,28 @@ def receber_localizacao(call):
 def verificar_local_no_mapa(call):
         chat_id = call.message.chat.id
         if call.data == 'sim_mapa':
+            del user_data[chat_id]['try_location']
             markup = types.InlineKeyboardMarkup()
             for topic in dic_problemas:
-                global chave_codificada
-                chave_codificada = topic
-                btn_categoria = types.InlineKeyboardButton(topic, callback_data=chave_codificada)
+                btn_categoria = types.InlineKeyboardButton(topic, callback_data=topic)
                 markup.row(btn_categoria)
-            bot.send_message(chat_id, "Selecione abaixo uma categoria para o problema encontrado", reply_markup=markup)
-        ### bot.register_next_step_handler(call.message, escolher_categoria)
+            bot.send_message(chat_id, "Selecione abaixo a categoria do problema encontrado", reply_markup=markup)
 
         if call.data == 'nao_mapa':
+            del user_data[chat_id]['localizacao']
             bot.send_message(chat_id, "Entendi. vamos tentar de novo, dessa vez, coloque mais detalhes, como bairro, cidade,nome da rua, ou até mesmo um n° rsidencial próximo.")
-            del user_data['lat_long']
+            
 
 
 @bot.message_handler(func = lambda message: True)
 def salvar_local_categoria(message):
     chat_id = message.chat.id
-    if not 'lat_long' in user_data:
-        resultados = funcoes.consultas_maps.salvar_latlong_endereco(message.text)
-        bot.send_location(chat_id, resultados[0], resultados[1])
-        user_data['lat_long'] = resultados[0], resultados[1]
-        user_data['localizacao'] = funcoes.consultas_maps.salvar_uf_bairro_cidade(resultados)
+    if user_data[chat_id].get('try_location'):
+        lat_long = funcoes.consultas_maps.salvar_latlong_endereco(message.text)
+        bot.send_location(chat_id, lat_long[0], lat_long[1])
+        user_data[chat_id]['localizacao'] = funcoes.consultas_maps.salvar_uf_bairro_cidade(lat_long)
         try:
-            user_data['localizacao'] = funcoes.consultas_maps.salvar_uf_bairro_cidade(resultados) #capturar estado (uf)
+            user_data[chat_id]['localizacao'] = funcoes.consultas_maps.salvar_uf_bairro_cidade(lat_long) #capturar estado (uf)
         except UnboundLocalError:
             bot.send_message(chat_id, "Ops, por favor, clique aqui em /start \nvamos tentar de novo, não achei o local.\n:( ")
 
@@ -115,23 +117,26 @@ def salvar_local_categoria(message):
         sim_button = types.InlineKeyboardButton('Sim', callback_data='sim_mapa')
         nao_button = types.InlineKeyboardButton('Não', callback_data='nao_mapa')
         markup.row(sim_button, nao_button)
-        # Envia a mensagem com o teclado de opções
         bot.send_message(chat_id, "É aqui que o problema se encontra?.\nVocê pode tocar no mapa e dar zoom, para ter mais precisão na verificação", reply_markup=markup)
+    
     #verificar a seleção de categorias/adicionar no banco de dados
-    if 'categoria' in user_data:
+    if 'categoria' in user_data[chat_id]:
         selected_subtopic = message.text
-        user_data['sub_categoria'] = selected_subtopic
+        user_data[chat_id]['sub_categoria'] = selected_subtopic
         bot.send_message(message.chat.id, f"Pronto, já adicionamos o problema de {selected_subtopic} ao nosso sistema. 🤝🥳")
-        conexao_mongo.adicionar_dados(user_data)
-        del user_data['_id']
+        conexao_mongo.atualizar(user_data[chat_id]['_id'], user_data[chat_id])
         bot.send_message(chat_id, funcoes.tratamentos.texto_padrao(agradecimento=True))
+        del user_data[chat_id]['_id']
+        del user_data[chat_id]
         pprint(user_data)
         print()
-#sub-tópicos selecionados.
+
+#sub-tópicos selecionados//recebe as categorias
 @bot.callback_query_handler(func=lambda call: call.data in topicos)
 def topic_selected(call):
+    chat_id = call.message.chat.id
     selected_topic = call.data
-    user_data['categoria'] = selected_topic
+    user_data[chat_id]['categoria'] = selected_topic
     markup = types.ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
     for subtopic in dic_problemas[selected_topic]:
         markup.add(types.KeyboardButton(subtopic))
