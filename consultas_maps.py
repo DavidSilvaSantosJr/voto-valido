@@ -58,11 +58,10 @@ def salvar_uf_bairro_cidade(coordenadas): #list
                     if ('political' or 'sublocality' or 'sublocality_level_1') in component['types']:
                         user_data['lat_long'] = [coordenadas[0], coordenadas[1]]
                         bairro = component['long_name']
+                        
                         user_data['uf'] = uf
                         user_data['city'] = cidade
                         user_data['bairro'] = bairro
-                        user_data['city_formated'] = unidecode(user_data['city'].lower())
-                        user_data['city_formated'] = user_data['city_formated'].replace("'", "")
                         user_data['like'] = 0
                         user_data['deslike'] = 0
                         user_data['coments'] = {
@@ -73,4 +72,5 @@ def salvar_uf_bairro_cidade(coordenadas): #list
                         }
                         return user_data
     except UnboundLocalError:
-        return 0
+        text = str("Ops! Não achei o local. clique em /start e tente mais uma vez")
+        return text
