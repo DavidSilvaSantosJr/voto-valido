@@ -1,18 +1,14 @@
 from keys import key
+from unidecode import unidecode
 #import keys as keys
 api_key = key
-def texto_padrao(boas_vindas=None, agradecimento=None):
+def texto_padrao(boas_vindas=None, agradecimento=None, consulta=None):
     if boas_vindas:
-        texto = str(
-            "Olá! sou o Veve, o bot que vai ajudar a cidade.\n\n"
-            "Diga onde está o problema, envie uma foto e descreva o que está acontecendo ali.\n\n\n"
-            "Ah, e mesmo que você esteja longe do local do problema, é possivel adiciona-lo na plataforma. Caso não tenha a imagem"
-            "basta enviar o link para alguém que esteja por lá.\n\n\n"
-            "Siga as instruções, e seja bem vindo!\n"
-            "caso eu pare,dê algum erro, ou pare de dar respostas, \n\n\nclique abaixo, em recomeçar que o processo será refeito\n\n"
-            " /recomeçar "
+       texto = str(
+           "Vamos, lá...o que quer fazer no momento? clique em uma das opções abaixo ⬇️"
         )
-        return texto
+       return texto
+
     
     elif agradecimento:
         texto = str(
@@ -22,14 +18,16 @@ def texto_padrao(boas_vindas=None, agradecimento=None):
             "Seu relato é extremamente importante para nós, pois nos ajuda a identificar áreas que precisam de melhorias e a tomar "
             "as medidas necessárias para resolver os problemas que afetam nossa comunidade"
 
-            "Voce pode ver esse e outros problemas em [link plataforma], não esqueça de compartilhar esse problemas com outros moradores da redondeza,"
-            "Isso ajuda a resolve-lo mais rápidamente."
+            "Voce pode ver esse e outros problemas com mais detalhes, e de forma mais interativa futuramente, em uma plataforma que está sendo desenvolvida, não esqueça de compartilhar esse problemas com outros moradores da redondeza,"
+            "Isso ajuda a resolve-lo mais rápidamente.\n\n"
+            "clique aqui em /start, caso queira fazer mais alguma coisa por aqui.\n"
+            "Caso tenha alguma sugestão, crítica ou opnião sobre o bot, fique a vontade para contatar os criadores."
+            "contato para suporte: juniorsilvadavi42@gmail.com "
 
         )
         return texto
 
 def salvar_imagem(message):
-
     user_id = message.chat.id
     photo_id = message.photo[-1].file_id
     # Salvando o ID da foto no banco de dados
@@ -37,4 +35,4 @@ def salvar_imagem(message):
                   "photo_id": photo_id
                   }
     
-    return  photo_data
+    return photo_data
