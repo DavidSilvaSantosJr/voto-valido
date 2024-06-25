@@ -22,7 +22,7 @@ def salvar_latlong_endereco(endereco):
                 return localizacao
             
             elif data['status'] == "ZERO_RESULTS":
-                resposta_busca = f"não consegui localizar {endereco.replace("%20", " ")}, verifique e tente novamente."
+                resposta_busca = f"não consegui localizar o endereço enviado, verifique e tente novamente."
                 return resposta_busca
             elif data['status'] == "INVALID_REQUEST":
                 resposta_busca = f"Ops!, insira estado, cidade, bairro e rua, verifique e tente novamente."
