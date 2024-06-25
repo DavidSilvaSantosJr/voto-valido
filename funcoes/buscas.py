@@ -54,7 +54,6 @@ def busca_local(uf=False, cidade=False, uf_to_agr=None):
         }
         ] 
         resultado = list(conexao_mongo.uf_collection.aggregate(pipeline))
-        print(resultado[0])
         return resultado[0]
 
     if cidade:
@@ -79,5 +78,4 @@ def busca_local(uf=False, cidade=False, uf_to_agr=None):
         }]
 
         resultado = list(conexao_mongo.uf_collection.aggregate(pipeline))
-        print(resultado[0])
         return resultado[0]
